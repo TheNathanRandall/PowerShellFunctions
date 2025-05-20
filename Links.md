@@ -1,5 +1,7 @@
 # Useful Links
 
+Reference links that I started to collect, as I got tired of re-googling the same ones again and again.
+
 ## PowerShell Console
 
 * Colors
@@ -18,8 +20,8 @@
 * [About...](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about)
 * Full [.NET API Browser](https://learn.microsoft.com/en-us/dotnet/api/)
 * [Proxy Commands](https://devblogs.microsoft.com/powershell/extending-andor-modifing-commands-with-proxies/)
-    * Simplified to two lines:  
-      `$metadata = New-Object system.management.automation.commandmetadata (Get-Command Get-Process)`  
+    * Simplified to two lines:
+      `$metadata = New-Object system.management.automation.commandmetadata (Get-Command Get-Process)`
       `[System.management.automation.proxycommand]::Create($MetaData)`
 * Go deeeep [PowerShell-Docs/reference/docs-conceptual/developer/cmdlet](https://github.com/MicrosoftDocs/PowerShell-Docs/tree/main/reference/docs-conceptual/developer/cmdlet)
 * Get [MIME Types](https://github.com/t3hn3rd/PSMimeTypes)
