@@ -18,6 +18,7 @@ Reference links that I started to collect, as I got tired of re-googling the sam
         * ![image](https://github.com/user-attachments/assets/f2d27922-18ac-44e4-9954-884773aeecc9)
 * [Rosetta Code](https://rosettacode.org/wiki/Category:PowerShell)
 * [About...](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about)
+* Best simplified explanation of [the -f format operator](https://ss64.com/ps/syntax-f-operator.html)
 * Full [.NET API Browser](https://learn.microsoft.com/en-us/dotnet/api/)
 * [Proxy Commands](https://devblogs.microsoft.com/powershell/extending-andor-modifing-commands-with-proxies/)
     * Simplified to two lines:
