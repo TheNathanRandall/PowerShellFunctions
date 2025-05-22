@@ -1,0 +1,79 @@
+# Termination script
+
+- Parameters
+    - Set paths for ResultFile and Transcripts
+    - Switch to use WorkdayAPI
+    - Workday credential stuff
+    - File paths
+- Setup
+    - Functions `New-Password` and `Save-Results` and `Send-GraphMailMessage`
+    - Get date (`$Now`), then ResultFile and Transcript using the date
+    - Start transcript
+    - Get last ResultFile, and use its date as `$TransactionsSince`
+    - Build a mostly empty `$ResultObject`, to be filled with all data to save
+    - Connect to ~~AzureAD,~~ ExchangeOnline, and Graph
+- Get Updates from Workday
+    - If using Workday API
+        - Get Workday Workers with transactions between runtime from ResultFile `$Now`
+        - Fill `$Entries`
+    - Else *(should not need)*
+        - Use .NET WinSCP to get CSVs from server
+        - Get CSV entries and add (parsed) date from filename, for all CSVs
+            - Update the *CSVs* property on `$ResultObject` with CSV paths
+                - Save `$ResultObject` to file
+        - Get *latest* entry for each ID
+    - Separate entries into `$Updateentries` and `$TerminationEntries`
+- Process Updates
+    - Make basic `$UpdatedUsers` array
+    - For each update entry:
+        - Get AD user
+        - Clear *extensionAttribute3* and *extensionAttribute6*
+        - Set *manager*, *title*, *extensionAttribute3*, and *extensionAttribute6*
+        - Get AD user again
+        - Put pre and post AD users, changes, and Entry in custom object
+        - 🔜 Repeat for OtherCompany if exists
+            - ❓ same data in same extensionAttributes?
+        - Add the object to the `$UpdatedUsers` array
+    - Update the *UpdatedUsers* property on `$ResultObject` with `$UpdatedUsers`
+        - Save `$ResultObject` to file
+- Process Terminations
+    - Make basic `$TerminatedUsers` array
+    - For each update entry:
+        - Clear errors
+        - Get AD user, AD member groups, Graph user, Graph member groups, Graph roles assignments, Graph authentication methods (MFA), and mailbox
+            - Create a custom object with these fields
+        - Do AD work
+            - Create a new password, and an expirationDate
+                - 📝 Note that password is used for reset, but never recorded
+            - Disable AD account
+            - Set account password
+            - Set account expiration
+            - Set *SamAccountName*, *EmployeeID*, *EmployeeNumber*, *msExchExtensionAttribute33*, *msExchExtensionAttribute34*, and *ExtensionAttribute15*
+            - Clear *Manager*
+            - Remove from AD groups
+        - Do mailbox work
+            - Hide from Address Lists
+            - ~~Enable Retention Hold~~ <sup>hold for now</sup>
+            - Remove forwarding address
+        - Do Graph work
+            - Select non-synced Graph groups that are not DynamicMembership type
+                - For each of those, remove the user from the group
+            - If Entra Roles, remove the role assignment
+            - Revoke sessions
+            - Remove all Authentication Methods *except* password, forcing re-registration of MFA
+        - Move to DisabledUsers OU in AD
+        - Add any errors to the custom object *Errors* field
+        - 🔜 Repeat for OtherCompany if exists
+            - ❓ same data in same extensionAttributes?
+        - Repeat for Admin account if exists
+        - Add the object to the `$TerminatedUsers` array
+    - Update the *TerminatedUsers* property on `$ResultObject` with `$TerminatedUsers`
+        - Save `$ResultObject` to file
+- Clean up and report
+    - Move CSVs to archive
+    - 🔜 Export report CSV
+    - 🔜 Email report and transcript (Fields? Format(s)?)
+    - ❗ Delete old content
+        - CSVs over **XX** months old
+        - Transcripts over **XX** months old
+        - Reports over **XX** months old
