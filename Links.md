@@ -55,6 +55,12 @@ Reference links that I started to collect, as I got tired of re-googling the sam
 
 ## Other stuff
 
+* VSCode extensions
+   * [Code Spell Checker](https://marketplace.visualstudio.com/items/?itemName=streetsidesoftware.code-spell-checker)
+   * [Quote Flipper](https://marketplace.visualstudio.com/items/?itemName=allenshuber.quote-flipper)
+   * [Edit CSV](https://marketplace.visualstudio.com/items/?itemName=janisdd.vscode-edit-csv) and [Rainbow CSV](https://marketplace.visualstudio.com/items/?itemName=mechatroner.rainbow-csv)
+   * [XML Tools](https://marketplace.visualstudio.com/items/?itemName=DotJoshJohnson.xml) for XPath testing
+   * [HTML CSS Support](https://marketplace.visualstudio.com/items/?itemName=ecmel.vscode-html-css) and [HTML Preview](https://marketplace.visualstudio.com/items/?itemName=george-alisson.html-preview-vscode)
 * MIME types
     * [Mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types/Common_types)
     * [FreeFormatter](https://www.freeformatter.com/mime-types-list.html)
