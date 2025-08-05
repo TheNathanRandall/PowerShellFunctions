@@ -1,0 +1,116 @@
+<#
+
+.SYNOPSIS
+Splits long lines into multiple lines based on specified characters and length.
+
+.DESCRIPTION
+This PowerShell function takes a string or multiple strings, splits them into shorter lines based on specified
+characters, and formats them with an optional indentation. It can return the results either to the pipeline,
+to the clipboard, or both.
+
+.PARAMETER Lines
+The line(s) to process. If not provided, it will read from the clipboard.
+
+.PARAMETER Length
+The maximum length of each line after splitting. Default is 120 characters.
+
+.PARAMETER SplitOn
+The character(s) to split the lines on. Default is a comma (`,`). Multiple characters can be specified.
+
+.PARAMETER Indent
+The number of spaces to indent the continuation lines. If not specified, it will use the indentation
+from the first line of input plus four additional spaces.
+
+.PARAMETER ReturnAs
+Specifies how to return the results. Options are 'Pipeline', 'Clipboard', or 'Both'. Default is 'Pipeline'.
+
+#>
+
+function Split-LongLine {
+    [CmdletBinding()]
+    param (
+        # Line(s) to use
+        [Parameter(ValueFromPipeline=$true,ValueFromRemainingArguments=$true)]
+        [String[]]
+        $Lines,
+        # Max length of line
+        [Parameter()]
+        [Alias('Max')]
+        [ValidateRange(20,2000)]
+        [int]
+        $Length = 120,
+        # Character(s) to split on
+        [Parameter()]
+        [Alias('Chars','Characters')]
+        # [ValidateNotNullOrEmpty]
+        [string[]]
+        $SplitOn = ',',
+        # Number of spaces to indent
+        [Parameter()]
+        [int]
+        $Indent,
+        # How to return results
+        [Parameter()]
+        [ValidateSet('Pipeline','Clipboard','Both')]
+        [string]
+        $ReturnAs = 'Pipeline'
+    )
+    begin {
+        if (-not $MyInvocation.BoundParameters.Lines) {
+            $Lines = Get-Clipboard
+        }
+        [array]$Lines = $Lines -replace '\r\n?',"`n" -split '\n'
+
+        if (-not $MyInvocation.BoundParameters.Indent) {
+            $IndentString = ($Lines[0] -replace '^(\s*).*','$1') + '    '
+        } else {
+            $IndentString = ' ' * $Indent
+        }
+
+        if ($MyInvocation.BoundParameters.SplitOn.Count -gt 1) {
+            $Split = $SplitOn -join '|'
+        } elseif ($MyInvocation.BoundParameters.SplitOn.Length -gt 1) {
+            $Split = $SplitOn.ToCharArray() -join '|'
+        } else {
+            $Split = $SplitOn
+        }
+        $AllLines = [System.Collections.Generic.List[string]]::new()
+    }
+    process {
+        $Lines | ForEach-Object {
+            # Write-Host -ForegroundColor blue "`$PSitem is $PSItem"
+            $TheseLines = [System.Collections.Generic.List[string]]::new()
+            $ThisLine = $PSItem
+
+            while ($ThisLine.Length -gt $Length) {
+                $LastChar = $ThisLine.Substring(0,$Length).LastIndexOf($Split) + 1
+                $FirstLine = $ThisLine.Substring(0,$LastChar)
+                $LastLine  = $IndentString + $ThisLine.Substring($LastChar).TrimStart()
+                # Write-Host -ForegroundColor Cyan '$ThisLine length is' $ThisLine.Length "and last '$Split' is at $LastChar"
+                # Write-Host -ForegroundColor Green $ThisLine
+                # Write-Host -ForegroundColor Green 'Adding to $ThisLine:' $FirstLine 'at index' $TheseLines.Count
+                # Write-Host -ForegroundColor Yellow $LastLine
+
+                $TheseLines.Add( $FirstLine )
+                $ThisLine = $LastLine
+            }
+            # Write-Host -ForegroundColor DarkGreen 'Adding final text to $ThisLine:' $FirstLine 'at index' $TheseLines.Count
+            $TheseLines.Add( $ThisLine )
+
+            $AllLines.AddRange($TheseLines)
+            # Write-Host -ForegroundColor Yellow '$AllLines now contains' $AllLines.Count 'lines'
+        }
+
+    }
+    end {
+        switch ($ReturnAs) {
+            'Pipeline'  { $AllLines }
+            'Clipboard' { $AllLines | Set-Clipboard }
+            'Both'      {
+                $AllLines | Set-Clipboard
+                $AllLines
+            }
+            Default {}
+        }
+    }
+}
