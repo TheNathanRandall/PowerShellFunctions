@@ -28,6 +28,7 @@ Reference links that I started to collect, as I got tired of re-googling the sam
 * Get [MIME Types](https://github.com/t3hn3rd/PSMimeTypes)
 * [PoshFunctions](https://github.com/riedyw/PoshFunctions)
 * [Encrypt passwords](https://thesysadminchannel.com/passwords-in-scripts-the-ultimate-best-practice-guide/) (old)
+* [.NET formats for dates, numbers, etc.](https://learn.microsoft.com/en-us/dotnet/standard/base-types/formatting-types)
 
 # Graph
 
