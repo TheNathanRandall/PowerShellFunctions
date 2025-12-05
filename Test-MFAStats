@@ -1,0 +1,163 @@
+## Random two digit MFA checker ##
+<#
+Assumption: The difficulty of entering a two digit MFA code is related to how many total vertical and horizontal steps
+    your finger takes between the fist and second digits.
+Curiosity: Which if any numbers are never used?
+Data source: Recording the 5-8 digits I must enter for MFA on every workday.
+#>
+
+
+
+#Region BuildNumberGroups
+
+# Build an XY grid of a phone number pad
+$Grid = @{
+    '1' = [PSCustomObject]@{ X = 1; Y = 1}
+    '2' = [PSCustomObject]@{ X = 1; Y = 2}
+    '3' = [PSCustomObject]@{ X = 1; Y = 3}
+    '4' = [PSCustomObject]@{ X = 2; Y = 1}
+    '5' = [PSCustomObject]@{ X = 2; Y = 2}
+    '6' = [PSCustomObject]@{ X = 2; Y = 3}
+    '7' = [PSCustomObject]@{ X = 3; Y = 1}
+    '8' = [PSCustomObject]@{ X = 3; Y = 2}
+    '9' = [PSCustomObject]@{ X = 3; Y = 3}
+    '0' = [PSCustomObject]@{ X = 4; Y = 2}
+}
+
+$Calced = 0..99 | ForEach-Object {
+    $Digits = '{0:d2}' -f $PSItem
+    $A = $Digits[0] -as [string]
+    $B = $Digits[1] -as [string]
+    # Sum the absolute values of the X and Y differences
+    $D = [math]::Abs( $Grid[$A].X - $Grid[$B].X ) + [math]::Abs( $Grid[$A].Y - $Grid[$B].Y )
+    [PSCustomObject]@{ Dig = $PSItem; Num = $Digits; Steps = $D }
+}
+
+$CalcGroup = $Calced | Group-Object Steps
+# Just to take a look...
+$CalcGroup | Select-Object Count, Name, @{ Name = 'Values' ; Expression = { $PSItem.Group.Num -join ',' } }
+
+$CalcGroup | ForEach-Object {
+    Set-Variable -Force -Name "M$($PSItem.Name)" -Value $PSItem.Group.Dig
+}
+
+# Unused now, but here for reference; the step groups:
+$StepGroups = @{
+    '0Steps' = 00,11,22,33,44,55,66,77,88,99
+    '1Steps' = 08,12,14,21,23,25,32,36,41,45,47,52,54,56,58,63,65,69,74,78,80,85,87,89,96,98
+    '2Steps' = 05,07,09,13,15,17,24,26,28,31,35,39,42,46,48,50,51,53,57,59,62,64,68,70,71,75,79,82,84,86,90,93,95,97
+    '3Steps' = 02,04,06,16,18,20,27,29,34,38,40,43,49,60,61,67,72,76,81,83,92,94
+    '4Steps' = 01,03,10,19,30,37,73,91
+}
+#EndRegion BuildNumberGroups
+
+
+
+#Region CollectMFANumbers
+$HaveUsed = (
+    84,33,19,17,35,41,26,73,34,89,10,24,16,38,82,91,53,13,75,69,70,14,94,45,16,78,41,75,10,82,33,17,73,29,33,32,35,70,
+    60,29,69,14,18,25,74,36,23,89,19,28,35,75,54,61,65,43,90,82,33,55,22,42,72,23,91,11,51,80,26,43,22,30,27,27,89,34,
+    33,84,14,48,66,17,67,62,16,57,72,52,91,23,16,96,15,29,41,22,45,36,65,43,99,88,22,82,46,20,49,15,80,77,15,89,79,67,
+    42,48,46,74,31,86,14,47,38,34,40,90,92,64,29,71,43,92,93,29,70,43,45,47,81,29,35,55,20,88,35,77,59,80,29,60,18,19,
+    18,71,22,53,79,51,62,62,19,42,67,14,59,24,98,80,48,22,98,56,58,15,33,19,99,45,97,27,57,54,42,17,80,48,68,38,32,54,
+    41,58,63,55,79,81,10,51,87,45,30,84,56,93,56,33,45,96,89,50,41,61,74,48,74,67,65,51,93,99,70,45,29,53,46,83,23,22,
+    57,97,97,96,48,66,73,54,53,68,79,66,71,69,28,81,45,95,96,50,98,22,81,17,49,65,57,77,95,49,75,52,55,62,86,69,81,86,
+    89,50,79,27,20,78,43,83,19,44,77,40,44,23,61,86,54,20,52,60,71,40,69,70,37,54
+)
+#EndRegion CollectMFANumbers
+
+
+
+#Region RunStatsOnMFANumbers
+
+# Get some raw stats
+$Grouped = $HaveUsed | ForEach-Object {
+    [PSCustomObject]@{
+        Num  = $PSItem
+        Name = '{0:d2}' -f $PSItem
+        Steps = ($Calced | Where-Object Dig -eq $PSItem).Steps
+    }
+} | Group-Object Steps | Select-Object @{
+    Name        = 'Steps'
+    Expression  = { $PSItem.Name -as [int] }
+}, Count, @{
+    Name        = 'SetPct'
+    Expression  = { $PSItem.Count / $HaveUsed.Count * 100 }
+}, @{
+    Name        = 'Set'
+    Expression  = {(Get-Variable "M$($PSItem.Name)").Value.Count}
+}, @{
+    Name        = 'Numbers'
+    Expression  = {$PSItem.Group.Name | Sort-Object}
+}, @{
+    Name        = 'Numerics'
+    Expression  = {$PSItem.Group.Num | Sort-Object}
+}
+
+# Format those raw stats
+$Grouped | Select-Object Steps, Count,  @{
+    Name        = 'Percent'
+    Expression  = { '{0,6:n1}%' -f ($PSItem.SetPct) }
+    # Expression  = { '{0,7:p2}' -f ($PSItem.SetPct / 100) }
+}, @{
+    Name        = 'Deviation'
+    Expression  = {
+        if ($PSItem.SetPct -gt $PSItem.Set) {
+            '{0} + {1,5:n2}%{2}' -f $PSStyle.Foreground.Green, ( ($PSItem.SetPct / $PSItem.Set - 1) * 100 ), $PSStyle.Reset
+        } elseif ($PSItem.SetPct -lt $PSItem.Set) {
+            '{0} - {1,5:n2}%{2}' -f $PSStyle.Foreground.BrightRed, ( (1 - $PSItem.SetPct / $PSItem.Set) * 100 ), $PSStyle.Reset
+        } else {
+            '       0%'
+        }
+        # '{0,9:p0}' -f $Percent
+    }
+} | Format-Table
+
+
+# Get usage of each number
+$IndividualUse = $Calced | Select-Object -PipelineVariable Calc | Select-Object *, @{
+    Name        = 'TimesUsed'
+    Expression  = { $HaveUsed.Where({$PSItem -eq $Calc.Dig}).Count }
+}, @{
+    Name        = 'PercentUsed'
+    Expression  = { $HaveUsed.Where({$PSItem -eq $Calc.Dig}).Count / $HaveUsed.Count }
+}
+
+# Format those stats
+$IndividualUse | Select-Object @{
+    Name        = 'Num'
+    Expression  = { " " + $PSItem.Num }
+}, Steps, @{
+    Name        = 'Used'
+    Expression  = {
+        $Color = switch ($PSItem.PercentUsed) {
+            0                   { $PSStyle.Foreground.BrightRed ; continue }
+            {$PSItem -lt 0.005} { $PSStyle.Foreground.BrightMagenta ; continue }
+            {$PSItem -lt 0.009} { $PSStyle.Foreground.BrightBlue ; continue }
+            {$PSItem -lt 0.013} { $PSStyle.Foreground.BrightCyan ; continue }
+            {$PSItem -lt 0.015} { $PSStyle.Foreground.BrightGreen ; continue }
+            {$PSItem -lt 0.5}   { $PSStyle.Foreground.BrightYellow ; continue }
+            Default             { '' }
+       }
+       '{0}{1,4}' -f $Color, $PSItem.TimesUsed
+ }
+}, @{
+    Name        = 'Percent'
+    Expression  = {
+        $Color = switch ($PSItem.PercentUsed) {
+            0                   { $PSStyle.Foreground.BrightRed ; continue }
+            {$PSItem -lt 0.005} { $PSStyle.Foreground.BrightMagenta ; continue }
+            {$PSItem -lt 0.009} { $PSStyle.Foreground.BrightBlue ; continue }
+            {$PSItem -lt 0.013} { $PSStyle.Foreground.BrightCyan ; continue }
+            {$PSItem -lt 0.015} { $PSStyle.Foreground.BrightGreen ; continue }
+            {$PSItem -lt 0.5}   { $PSStyle.Foreground.BrightYellow ; continue }
+            Default             { '' }
+        }
+        '{0}{1,7:p1}' -f $Color, $PSItem.PercentUsed
+    }
+} | Format-Table
+
+# List unused numbers
+$IndividualUse.Where({-not $PSItem.TimesUsed}).Num -join ', '
+
+#EndRegion RunStatsOnMFANumbers
